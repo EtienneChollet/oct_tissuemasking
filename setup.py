@@ -12,7 +12,7 @@ cupy_package = f'cupy-cuda{cuda_version}'
 
 setup(
     name='oct_tissuemasking',
-    version='0.0.7',
+    version='0.0.1',
     description='A PyTorch based package for automated OCT tissue masking.',
     long_description=open('README.md').read(),
     long_description_content_type="text/markdown",
