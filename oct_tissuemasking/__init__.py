@@ -1,2 +1,3 @@
-# oct_tissuemasking/__init__.py
 from .main import app
+from . import models
+from .models import *

@@ -9,6 +9,34 @@ import cornucopia as cc
 import torch.nn.functional as F
 
 
+def get_checkpoint_from_version(version_n: int = 1):
+    """
+    Load the model checkpoint from the version number
+
+    Parameters
+    ----------
+    version_n : int
+        Version number of the model in oct_tissuemasking/checkpoints
+
+    Returns
+    -------
+    str
+        Full path to the model checkpoint.
+    """
+    from importlib.resources import files
+
+    checkpoint_path = files("oct_tissuemasking.checkpoints").joinpath(
+        f"version-{version_n}_checkpoint.tar"
+    )
+
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(
+            f"Default model checkpoint not found at: {checkpoint_path}"
+        )
+    print('Using default model found at: ', checkpoint_path)
+    return checkpoint_path
+
+
 class MultiConv3D(nn.Module):
     """
     A module that performs multiple consecutive convolutional operations, each
@@ -274,7 +302,7 @@ class ScaledUNet(nn.Module):
 
 
 class ModelConfigManager:
-    def __init__(self, base_model_dir, n_classes=3, verbose=False):
+    def __init__(self, base_model_dir=None, n_classes=3, verbose=False):
         """
         Initialize the manager with the directory and version of the model
         configuration.
@@ -316,8 +344,14 @@ class ModelConfigManager:
         print(checkpoint_path)
         return checkpoint_path
 
-    def build_and_load_model(self, channels=3, device='cuda'):
-        """Build the model from configuration and load the latest checkpoint.
+    def build_and_load_model(
+        self,
+        channels=3,
+        device='cuda',
+        checkpoint_path: str = None
+    ):
+        """
+        Build the model from configuration and load the latest checkpoint.
 
         Parameters
         ----------
@@ -334,10 +368,14 @@ class ModelConfigManager:
 
         model = ScaledUNet(base_filters=8, scale_factor=1)
 
-        checkpoint_path = self.get_most_recent_checkpoint()
-        if checkpoint_path:
-            checkpoint = torch.load(checkpoint_path, map_location=device)
-            model.load_state_dict(checkpoint['state_dict'])
+        if checkpoint_path is None:
+            checkpoint_path = self.get_most_recent_checkpoint()
+
+        # Loading the model weights
+        checkpoint = torch.load(checkpoint_path, map_location=device)
+
+        # Loading state dict
+        model.load_state_dict(checkpoint['state_dict'])
         return model
 
 

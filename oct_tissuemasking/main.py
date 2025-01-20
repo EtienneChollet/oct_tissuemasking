@@ -1,14 +1,25 @@
 import numpy as np
 import nibabel as nib
 from cyclopts import App
+from oct_tissuemasking.config import __version__
+from oct_tissuemasking.models import (
+    ModelConfigManager, FullPredict, get_checkpoint_from_version
+)
+
+app = App(version=__version__)
 
 
-app = App()
+@app.command()
+def version():
+    """
+    Display the current version of the package.
+    """
+    print(f"oct_tissuemasking version: {__version__}")
 
 
 # TODO: Figure out how to set req arguments without throwing error in calling.
 @app.command()
-def predict(model: str, in_path: str, out_path: str, patch_size: int = 128,
+def predict(in_path: str, out_path: str, model: str = None, patch_size: int = 128,
             step_size: int = 64):
     """
     Predict the OCT tissue mask on a specified volume with a specified trained
@@ -29,16 +40,20 @@ def predict(model: str, in_path: str, out_path: str, patch_size: int = 128,
     step_size : int
         Size of step between adjacent prediction patches.
     """
-    if not model or not in_path or not out_path:
-        print("Missing arguments. Usage: command --model MODEL --in_path IN_PATH --out_path OUT_PATH")
-        exit(0)
     import torch
-    from oct_tissuemasking.models import ModelConfigManager, FullPredict
-    # Loading model from weights
-    base_model_dir = (f'/autofs/cluster/octdata2/users/epc28/oct_tissuemasking/output/models/version_{model}')
-    config_manager = ModelConfigManager(base_model_dir, n_classes=1,
-                                        verbose=True)
-    model = config_manager.build_and_load_model(1, device='cuda')
+    # Get the full path to the model checkpoint
+    checkpoint_path = str(get_checkpoint_from_version())
+
+    # Init the model configuration manager
+    config_manager = ModelConfigManager(n_classes=1, verbose=True)
+
+    # Build the model from the checkpoint path
+    model = config_manager.build_and_load_model(
+        1,
+        'cuda',
+        checkpoint_path=checkpoint_path,
+    )
+
     model.eval().cuda()
     print('Model Loaded...')
 
@@ -67,7 +82,9 @@ def predict(model: str, in_path: str, out_path: str, patch_size: int = 128,
     print(out_tensor.max())
     prediction.imprint_tensor[prediction.imprint_tensor < 0.5] = 0
     prediction.imprint_tensor[prediction.imprint_tensor >= 0.5] = 1
-    prediction.imprint_tensor = prediction.imprint_tensor.cpu().numpy().astype(np.uint8)[0][0]
+    prediction.imprint_tensor = prediction.imprint_tensor.cpu().numpy().astype(
+        np.uint8
+    )[0][0]
 
     nib.save(
         nib.nifti1.Nifti1Image(
@@ -75,10 +92,27 @@ def predict(model: str, in_path: str, out_path: str, patch_size: int = 128,
             affine=affine),
         filename=out_path)
 
+@app.command()
+def test_prediction():
+    from importlib.resources import files
+    model = None
+    if model is None:
+        checkpoint_path = files("oct_tissuemasking.checkpoints").joinpath(
+            "version-1_checkpoint.tar"
+        )
+        if not checkpoint_path.exists():
+            raise FileNotFoundError(
+                f"Default model checkpoint not found at: {checkpoint_path}"
+            )
+        print('Using default model found at:', checkpoint_path)
+    else:
+        checkpoint_path = Path(model)
+        if not checkpoint_path.exists():
+            raise FileNotFoundError(f"Specified model checkpoint not found: {model}")
 
-# @app.default
-# def default_action():
-#    print("Hello world! This runs when no command is specified.")
+    print(checkpoint_path)
+
+
 
 if __name__ == '__main__':
     app()
