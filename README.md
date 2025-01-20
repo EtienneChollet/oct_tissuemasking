@@ -34,15 +34,15 @@ Use the following command to make a tissue mask from the OCT volume located at`-
 
 ```bash
 python oct_tissuemasking predict --in-path <INPUT_PATH> \
-							    						--out-path <OUTPUT_PATH> \
-                              [--model <MODEL_VERSION>] \ 	# Optional, default 1
-                              [--patch-size <PATCH_SIZE>] \ # Optional, default 128
-                              [--step-size <STEP_SIZE>]			# Optional, default 128
+                                 --out-path <OUTPUT_PATH> \
+                                [--model <MODEL_VERSION>] \ 	# Optional, default 1
+                                [--patch-size <PATCH_SIZE>] \ 	# Optional, default 128
+                                [--step-size <STEP_SIZE>] 	# Optional, default 128
 ```
 
 ### Parameters:
 
-- `--in-path`: Path to the input NIfTI file.
+- `--in-path`: Path to the input NIfTI file that contains a 3D OCT image.
 - `--out-path`: Path to save the output binarized tissue mask (NIfTI format).
 - `--model` (optional): Version of the model to use. Defaults to the version specified in the package.
 - `--patch-size` (optional): Size of the model input patch (default: 128).
@@ -54,8 +54,8 @@ To generate a tissue mask:
 
 ```bash
 python oct_tissuemasking predict --in-path input_volume.nii.gz \
-                              --out-path output_mask.nii.gz \
-                              --model 1 \
-                              --patch-size 128 \
-                              --step-size 64
+                                 --out-path output_mask.nii.gz \
+                                 --model 1 \
+                                 --patch-size 128 \
+                                 --step-size 64
 ```
